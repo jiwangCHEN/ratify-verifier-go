@@ -115,6 +115,9 @@ func (v *Verifier) Verify(ctx context.Context, opts *ratify.VerifyOptions) (*rat
 		return result, nil
 	}
 
+	if len(outcome.EnvelopeContent.SignerInfo.CertificateChain) == 0 {
+		return nil, fmt.Errorf("notation verification returned an empty certificate chain")
+	}
 	cert := outcome.EnvelopeContent.SignerInfo.CertificateChain[0]
 	result.Detail = map[string]string{
 		"Issuer": cert.Issuer.String(),

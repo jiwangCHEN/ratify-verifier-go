@@ -109,7 +109,19 @@ func (m *mockVerifier) Verify(_ context.Context, _ ocispec.Descriptor, _ []byte,
 	} else {
 		return nil, errors.New("verification failed")
 	}
+}
 
+// mockVerifierEmptyChain is a mock verifier that returns an empty certificate chain.
+type mockVerifierEmptyChain struct{}
+
+func (m *mockVerifierEmptyChain) Verify(_ context.Context, _ ocispec.Descriptor, _ []byte, _ notation.VerifierVerifyOptions) (*notation.VerificationOutcome, error) {
+	return &notation.VerificationOutcome{
+		EnvelopeContent: &signature.EnvelopeContent{
+			SignerInfo: signature.SignerInfo{
+				CertificateChain: []*x509.Certificate{},
+			},
+		},
+	}, nil
 }
 
 func TestNewVerifier(t *testing.T) {
@@ -225,6 +237,24 @@ func TestVerify(t *testing.T) {
 			},
 			expectedError:  false,
 			expectedResult: &ratify.VerificationResult{},
+		},
+		{
+			name:     "empty certificate chain",
+			verifier: &mockVerifierEmptyChain{},
+			opts: &ratify.VerifyOptions{
+				Repository: testRepo,
+				Store: &mockStore{
+					manifest: &ocispec.Manifest{
+						Layers: []ocispec.Descriptor{
+							{
+								Digest: testDigest2,
+							},
+						},
+					},
+					signatureBlob: []byte{},
+				},
+			},
+			expectedError: true,
 		},
 		{
 			name: "verification succeeded",
